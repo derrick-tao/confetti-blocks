@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f0ff">
+  <meta name="description" content="Small blocks. Big yay. A colorful, free block puzzle with happy sounds, confetti, and offline play.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Confetti Blocks — Small blocks. Big yay.</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <svg class="svg-defs" aria-hidden="true"><defs>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="m11 5-6 4H2v6h3l6 4V5Zm4 3a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24"><path d="m11 5-6 4H2v6h3l6 4V5Zm5 4 6 6m0-6-6 6"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3 6.5 7 .9-5 5 .9 7.1-5.9-3.4-6 3.4 1-7.1-5-5 7-.9Z"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7 3h10v6a5 5 0 0 1-10 0V3Zm0 2H3v3a4 4 0 0 0 4 4m10-7h4v3a4 4 0 0 1-4 4m-5 2v6m-5 1h10"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 2 8M4 4v6h6"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><path d="m9 3-1 3-3 1-2 3 2 2-1 4 3 2 3-1 2 4 3-1 1-3 4-1 1-4-3-2V6l-4-1-2-3-3 1Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 4 3c-1 .5-1 1-1 2m0 3h.01"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 2 2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5Z"/></symbol>
+  </defs></svg>
+  <header class="header"><a class="brand" href="./"><img src="./favicon.svg" width="38" height="38" alt=""><span>confetti<span class="brand-light">blocks</span><span class="brand-dot">.</span></span></a><div class="header-right"><span class="free-badge">100% play. 0% pressure.</span><button class="icon-button" id="help" aria-label="How to play"><svg><use href="#i-help"/></svg></button><button class="icon-button" id="settings" aria-label="Game settings"><svg><use href="#i-gear"/></svg></button></div></header>
+  <main class="layout">
+    <section class="intro" aria-label="Welcome"><p class="eyebrow"><span></span> YOUR HAPPY LITTLE BRAIN BREAK</p><h1>Small blocks.<br>Big <em>yay.</em><svg aria-hidden="true"><use href="#i-spark"/></svg></h1><p class="intro-copy">A little color. A clever move.<br>A whole lot of <strong>“I did that!”</strong></p>
+      <div class="mascot" aria-hidden="true"><svg viewBox="0 0 250 210"><ellipse cx="124" cy="188" rx="72" ry="10" fill="#d9ceef"/><g class="mascot-body"><rect x="52" y="29" width="69" height="69" rx="16" fill="#ffc866"/><rect x="130" y="29" width="69" height="69" rx="16" fill="#ff927e"/><rect x="52" y="107" width="69" height="69" rx="16" fill="#8edbc2"/><rect x="130" y="107" width="69" height="69" rx="16" fill="#b19ae9"/><path d="M64 46h44m35 0h42M64 123h44m35 0h42" stroke="#fff" stroke-opacity=".35" stroke-width="5" stroke-linecap="round"/><ellipse cx="92" cy="78" rx="4" ry="6" fill="#463753"/><ellipse cx="159" cy="78" rx="4" ry="6" fill="#463753"/><path d="M112 86q13 17 26 0" fill="none" stroke="#463753" stroke-width="5" stroke-linecap="round"/><circle cx="78" cy="90" r="7" fill="#f3ad63"/><circle cx="173" cy="90" r="7" fill="#f18073"/></g><path d="m17 51 4-13 4 13 13 4-13 4-4 13-4-13-13-4Zm204 70 3-9 3 9 9 3-9 3-3 9-3-9-9-3Z" fill="#9477cd"/><circle cx="215" cy="20" r="4" fill="#f6bd55"/></svg><span class="mascot-note">you've got this!</span></div>
+      <div class="no-rush"><span aria-hidden="true">♡</span><div><strong>No rush. Just joy.</strong><p>No timers, no ads, no wrong way to unwind.</p></div></div>
+    </section>
+    <section class="game" aria-label="Block puzzle">
+      <div class="mode-label"><span class="mode-dot"></span> ENDLESS PLAY <span class="mode-stars" aria-hidden="true">✦ ✧ ✦</span></div>
+      <div class="scoreboard"><div class="score-main"><p>SCORE</p><output id="score">0</output></div><div class="best-main"><p><svg aria-hidden="true"><use href="#i-trophy"/></svg> PERSONAL BEST</p><output id="best">0</output></div></div>
+      <div class="board-shell" id="board-shell">
+        <div class="board" id="board" role="group" aria-label="8 by 8 puzzle board. Select a piece, then use arrow keys and Enter to place."></div>
+        <div class="board-overlay" id="overlay"><div class="overlay-spark" aria-hidden="true"><svg><use href="#i-spark"/></svg></div><p class="eyebrow" id="overlay-kicker">A LITTLE PUZZLE. A LOT OF HAPPY.</p><h2 id="overlay-title">Ready, set…<br><em>happy!</em></h2><p id="overlay-copy">Fit the blocks. Clear the lines.<br>Find your next little win.</p><button class="primary" id="play">Let's play <span aria-hidden="true">→</span></button><span class="overlay-foot" id="overlay-foot">No timer. Take your time.</span></div>
+        <div class="celebration" id="celebration" aria-hidden="true"><span id="celebration-title"></span><small id="celebration-sub"></small></div>
+        <canvas id="particles" aria-hidden="true"></canvas>
+      </div>
+      <div class="tray-wrap"><div class="tray-caption"><span id="tray-hint">YOUR NEXT LITTLE MOVES</span><span class="combo" id="combo"><svg aria-hidden="true"><use href="#i-spark"/></svg> <span id="combo-text">LET'S GO!</span></span></div><div class="tray" id="tray" aria-label="Available pieces"></div><p class="play-hint" id="play-hint">Drag a block, or tap one then tap the board.</p></div>
+      <div class="game-toolbar"><button id="sound" class="toolbar-button" aria-label="Mute sound" aria-pressed="true"><svg><use href="#i-sound"/></svg><span>Sound on</span></button><button id="calm" class="toolbar-button" aria-pressed="false"><svg><use href="#i-spark"/></svg><span>Effects on</span></button><button id="restart" class="toolbar-button"><svg><use href="#i-reset"/></svg><span>New game</span></button></div>
+    </section>
+    <aside class="sidebar"><div class="how-card"><span class="little-label">LITTLE MOVES, BIG WINS</span><h2>Easy to play.<br>Lovely to master.</h2><ol><li><span class="step">1</span><div><strong>Find a spot</strong><p>Drag any of your three pieces onto an empty space.</p></div></li><li><span class="step">2</span><div><strong>Make a line</strong><p>Fill a row or column and watch it pop!</p></div></li><li><span class="step">3</span><div><strong>Keep the joy going</strong><p>Clear on back-to-back moves for a combo boost.</p></div></li></ol><div class="mini-board" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><p class="tip">Little tip: leave room for the big blocks, too.</p></div><div class="run-stats"><div><svg aria-hidden="true"><use href="#i-star"/></svg><span>LINES CLEARED</span><output id="lines">0</output></div><div><svg aria-hidden="true"><use href="#i-spark"/></svg><span>HAPPY MOVES</span><output id="moves">0</output></div></div><button class="install-card" id="install"><svg aria-hidden="true"><use href="#i-download"/></svg><span><strong>Take the happy with you</strong><small id="offline-status">Preparing offline play…</small></span><span aria-hidden="true">→</span></button></aside>
+  </main>
+  <footer><span>MADE FOR LITTLE BREAKS & BIG SMILES <svg aria-hidden="true"><use href="#i-spark"/></svg></span><button id="offline-info"><span class="connection-dot" id="connection-dot"></span><span id="connection-text">Checking offline download…</span></button></footer>
+  <div id="drag-ghost" aria-hidden="true"></div><div id="toast" role="status" aria-live="polite"></div><p id="announcer" class="sr-only" role="status" aria-live="polite"></p>
+  <button id="update" class="update-banner" hidden>New happy things are ready. Update game →</button>
+  <dialog id="help-dialog"><button class="close" data-close aria-label="Close instructions">×</button><p class="eyebrow">A FEW LITTLE POINTERS</p><h2>Let's make things pop.</h2><p>Fit pieces onto the 8×8 board. Complete a row or column to clear it. Use all three pieces to get a fresh set. The game ends when none of your remaining pieces fit.</p><div class="help-chips"><span>No timer</span><span>No rotation</span><span>Just possibilities</span></div><h3>Your moves</h3><p><strong>Touch or mouse:</strong> drag a piece, or select a piece and tap its top-left destination on the board.</p><p><strong>Keyboard:</strong> 1, 2, 3 selects a piece. Arrows move the preview. Enter or Space places it. Escape deselects.</p><h3>Your points</h3><p>Each block is worth 10 points. A clear adds 100 × lines² × combo streak. Clear on consecutive moves to grow your combo. Clear the whole board for 500 extra points!</p><p class="muted">Best score is saved in this browser. No sign-in, ads, purchases, or tracking.</p></dialog>
+  <dialog id="settings-dialog"><button class="close" data-close aria-label="Close settings">×</button><p class="eyebrow">MAKE YOURSELF AT HOME</p><h2>Your kind of happy.</h2><label class="setting-row">Happy sounds <input id="sound-setting" type="checkbox" checked></label><label class="setting-row">Sound volume <input id="volume" type="range" min="0" max="100" value="45" aria-label="Sound volume"></label><label class="setting-row">Calm mode <input id="calm-setting" type="checkbox"></label><p class="muted">Calm mode keeps the colors and turns down the movement, glows, and confetti. Your device's reduced-motion preference is respected by default.</p></dialog>
+  <dialog id="offline-dialog"><button class="close" data-close aria-label="Close offline help">×</button><p class="eyebrow">HAPPY, WHEREVER YOU GO</p><h2>One download.<br>Lots of little wins.</h2><p id="offline-detail">The game is downloading its offline files. Keep this page open until you see “Ready to play offline.”</p><button class="primary" id="install-prompt" hidden>Install app <span aria-hidden="true">↓</span></button><p>To keep it handy, use your browser's <strong>Install app</strong> or <strong>Add to Home Screen</strong> option. On iPhone/iPad, use Safari → Share → Add to Home Screen.</p><p class="muted">Offline play works in this browser after the download completes. Clearing site data or browser storage cleanup may remove the download. Open it online again to restore it. No app-store download needed.</p></dialog>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
