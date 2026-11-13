@@ -27,7 +27,7 @@ npm test
 npm run build
 ```
 
-`dist/` contains only the production static app. `npm ci` installs optional browser test tooling; no packages are needed by the game or build. With a server running, `node tests/browser.mjs` runs Chromium checks. Set `TEST_URL` to a repository-subpath URL to test deployment, and `CHROMIUM_PATH` if Chromium is not `/usr/bin/chromium`. Screenshots go in ignored `test-results/`.
+`dist/` contains only the production static app. `npm ci` installs optional browser test tooling; no packages are needed by the game or build. With a server running, `node tests/browser.mjs` runs Chromium checks. Set `TEST_URL` to a repository-subpath URL to test deployment, and `CHROMIUM_PATH` if Chromium is not `/usr/bin/chromium`. Screenshots go in ignored `test-results/`. `node tests/offline-update.mjs` starts its own test server and verifies update consent, coherent activation, and recovery from an interrupted download.
 
 ## Deploy
 GitHub Pages source: GitHub Actions. Push to `main` or manually run the deployment workflow. It tests the engine, stages all app/PWA files, and deploys the official Pages artifact. Relative URLs support project Pages paths. Bump the cache version in `sw.js` whenever production files change so existing offline users receive a coherent update.

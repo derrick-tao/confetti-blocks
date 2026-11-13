@@ -124,6 +124,7 @@ function focusAnchor(){
 }
 function floatScore(points){
   if(calm)return;
+  document.querySelectorAll('.score-float').forEach(node=>node.remove());
   const node=document.createElement('span');node.className='score-float';node.textContent=`+${points.toLocaleString()}`;$('board-shell').append(node);node.addEventListener('animationend',()=>node.remove(),{once:true});
 }
 function celebrate(result){
@@ -137,6 +138,7 @@ function commit(){
   if(!canInteract()||selected===null)return;
   const result=game.place(selected,anchor.x,anchor.y);
   if(!result){audio.play('invalid');toast('Not quite! Find an empty spot for the whole piece.');return;}
+  clearTimeout(toastTimer);$('toast').classList.remove('show');
   selected=null;busy=result.count>0;clearPreview();renderBoard(result);renderTray();renderStats();renderOverlay();
   $('play-hint').textContent='Drag a block, or tap one then tap the board.';
   floatScore(result.points);

@@ -38,6 +38,11 @@ try{
   for(let x=3;x<8;x++)await put(page,x,0);
   await page.locator('.cell.clearing').first().waitFor();assert.equal(await page.locator('.cell.clearing').count(),8);
   assert.equal(await page.locator('#celebration-title').innerText(),'Clean sweep!');
+  await page.waitForTimeout(130);
+  assert.ok(await page.evaluate(()=>{
+    const c=document.querySelector('#particles'),data=c.getContext('2d').getImageData(0,0,c.width,c.height).data;
+    return data.some((v,i)=>i%4===3&&v>0);
+  }));
   await page.screenshot({path:'test-results/celebration.png',fullPage:true});
   await settled(page);assert.equal(await page.locator('#score').innerText(),'680');assert.equal(await page.locator('#lines').innerText(),'1');
   assert.equal(await page.locator('.cell.tile').count(),0);
@@ -94,6 +99,30 @@ try{
   });
   const calmPage=await reduced.newPage();watch(calmPage);await calmPage.goto(base);assert.equal(await calmPage.locator('body').getAttribute('class'),'calm');
   await calmPage.locator('#play').click();await put(calmPage,0,0);assert.equal(await calmPage.locator('#score').innerText(),'10');await reduced.close();
+  // A reproducible mixed-shape game, played only through the public UI.
+  const mixed=await browser.newContext({viewport:{width:1440,height:1000}});
+  await mixed.addInitScript(()=>{let seed=731;Math.random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};});
+  const mixedPage=await mixed.newPage();watch(mixedPage);await mixedPage.goto(base);await mixedPage.locator('#play').click();
+  let ended=false;
+  for(let move=0;move<160;move++){
+    await mixedPage.waitForFunction(()=>!document.querySelector('.cell.clearing'));
+    if(await mixedPage.locator('#overlay').isVisible()){ended=true;break;}
+    const fit=await mixedPage.evaluate(()=>{
+      const occupied=[...document.querySelectorAll('.cell')].map(c=>c.classList.contains('tile'));
+      const buttons=[...document.querySelectorAll('.piece-slot')];
+      for(let slot=0;slot<3;slot++){
+        const shape=[...buttons[slot].querySelectorAll('.tile')].map(c=>[parseInt(c.style.gridColumn)-1,parseInt(c.style.gridRow)-1]);
+        if(!shape.length)continue;
+        for(let y=0;y<8;y++)for(let x=0;x<8;x++)if(shape.every(([dx,dy])=>x+dx<8&&y+dy<8&&!occupied[(y+dy)*8+x+dx]))return {slot,x,y};
+      }
+      return null;
+    });
+    assert.ok(fit,'A playing game must offer a legal move');
+    await mixedPage.locator(`.piece-slot[data-slot="${fit.slot}"]`).click();await cell(mixedPage,fit.x,fit.y).click();
+    if(move===7){await settled(mixedPage);await mixedPage.screenshot({path:'test-results/mixed-shapes.png',fullPage:true});}
+  }
+  assert.ok(ended,'Mixed game reaches a no-move ending');assert.ok((await mixedPage.locator('#overlay-title').innerText()).includes('Good game'));
+  await mixedPage.locator('#play').click();assert.equal(await mixedPage.locator('#moves').innerText(),'0');await mixed.close();
   assert.deepEqual(errors,[]);
   console.log('Passed: mouse/keyboard/touch, invalid/cancelled/outside drag, clear/confetti/combo, scores, restart, settings, audio/storage failure, responsive layouts, and offline reload + closed-tab reopen.');
 }finally{await browser.close();}
