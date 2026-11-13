@@ -7,7 +7,7 @@ const save=(key,value)=>{try{localStorage.setItem(`confetti-${key}`,JSON.stringi
 let best=Number(read('best',0));if(!Number.isFinite(best)||best<0)best=0;
 let calm=!!read('calm',reduced.matches),sound=!!read('sound',true),volume=Number(read('volume',45));
 if(!Number.isFinite(volume))volume=45;volume=Math.max(0,Math.min(100,volume));
-let selected=null,anchor={x:0,y:0},drag=null,busy=false,clearTimer=0,toastTimer=0,celebrateTimer=0,scoreFrame=0,initialBest=best,bestCelebrated=false;
+let selected=null,anchor={x:0,y:0},drag=null,dragFrame=0,boardRevision=0,previewKey=null,busy=false,clearTimer=0,toastTimer=0,celebrateTimer=0,scoreFrame=0,initialBest=best,bestCelebrated=false;
 let offlineReady=false,deferredInstall=null,registration=null,updating=false;
 const confetti=new Confetti($('particles'),()=>calm),board=$('board'),slots=[],cells=[];
 const dialogs=[...document.querySelectorAll('dialog')];
@@ -53,9 +53,10 @@ for(let slot=0;slot<3;slot++){
   button.addEventListener('click',event=>{if(event.detail===0){select(slot);focusAnchor();}});
   $('tray').append(button);slots.push(button);
 }
-function shapeHTML(piece,unit){
-  const {w,h}=dimensions(piece);
-  return `<div class="piece-shape" style="--w:${w};--h:${h};${unit?`--unit:${unit}px`:''}">${piece.cells.map(([x,y])=>`<i class="tile ${piece.color}" style="grid-column:${x+1};grid-row:${y+1}"></i>`).join('')}</div>`;
+function shapeNode(piece,unit){
+  const {w,h}=dimensions(piece),shape=document.createElement('div');shape.className='piece-shape';
+  shape.style.setProperty('--w',w);shape.style.setProperty('--h',h);if(unit)shape.style.setProperty('--unit',`${unit}px`);
+  for(const [x,y] of piece.cells){const tile=document.createElement('i');tile.className=`tile ${piece.color}`;tile.style.gridColumn=x+1;tile.style.gridRow=y+1;shape.append(tile);}return shape;
 }
 function renderTray(){
   slots.forEach((button,slot)=>{
@@ -64,10 +65,11 @@ function renderTray(){
     button.disabled=!piece||game.state!=='playing'||busy;
     button.setAttribute('aria-pressed',String(selected===slot));
     button.setAttribute('aria-label',piece?`Piece ${slot+1}: ${piece.name}, ${piece.cells.length} blocks${blocked?', currently no space':''}`:`Piece ${slot+1} used`);
-    button.innerHTML=piece?`${shapeHTML(piece)}<span class="piece-number" aria-hidden="true">${slot+1}</span>`:'';
+    button.replaceChildren();if(piece){const number=document.createElement('span');number.className='piece-number';number.setAttribute('aria-hidden','true');number.textContent=slot+1;button.append(shapeNode(piece),number);}
   });
 }
 function renderBoard(result){
+  clearPreview();boardRevision++;
   const clearing=new Map((result?.clearedTiles||[]).map(cell=>[cell.y*SIZE+cell.x,cell.color]));
   const placed=new Set((result?.placed||[]).map(([x,y])=>y*SIZE+x));
   cells.forEach((cell,index)=>{
@@ -103,17 +105,20 @@ function renderOverlay(){
   }
 }
 function render(){renderBoard();renderTray();renderStats();renderOverlay();}
-function clearPreview(){cells.forEach(cell=>{cell.classList.remove('preview','invalid','line-preview');cell.style.removeProperty('--tile');});}
+const previewCells=new Set();
+function clearPreview(){for(const cell of previewCells){cell.classList.remove('preview','invalid','line-preview');cell.style.removeProperty('--tile');}previewCells.clear();previewKey=null;}
 function preview(){
-  clearPreview();if(!canInteract()||selected===null)return;
-  const piece=game.tray[selected];if(!piece)return;
+  if(!canInteract()||selected===null){clearPreview();return;}
+  const piece=game.tray[selected];if(!piece){clearPreview();return;}
+  const key=`${piece.id}:${anchor.x}:${anchor.y}:${boardRevision}`;if(key===previewKey)return;
+  clearPreview();previewKey=key;
   const valid=game.canPlace(piece,anchor.x,anchor.y);
-  for(const [dx,dy]of piece.cells){const x=anchor.x+dx,y=anchor.y+dy;if(x<0||x>=SIZE||y<0||y>=SIZE)continue;const cell=cells[y*SIZE+x];cell.style.setProperty('--tile',`var(--${piece.color})`);cell.classList.add(valid?'preview':'invalid');}
-  if(valid){const result=game.preview(selected,anchor.x,anchor.y);for(const [x,y]of result.cleared)cells[y*SIZE+x].classList.add('line-preview');}
+  for(const [dx,dy]of piece.cells){const x=anchor.x+dx,y=anchor.y+dy;if(x<0||x>=SIZE||y<0||y>=SIZE)continue;const cell=cells[y*SIZE+x];cell.style.setProperty('--tile',`var(--${piece.color})`);cell.classList.add(valid?'preview':'invalid');previewCells.add(cell);}
+  if(valid){const result=game.preview(selected,anchor.x,anchor.y);for(const [x,y]of result.cleared){const cell=cells[y*SIZE+x];cell.classList.add('line-preview');previewCells.add(cell);}}
 }
 function select(slot){
   if(!canInteract()||!game.tray[slot])return;
-  selected=slot;renderTray();preview();audio.play('pickup');
+  cancelDrag();selected=slot;renderTray();preview();audio.play('pickup');
   const piece=game.tray[slot];$('play-hint').textContent=game.hasFit(piece)?`${piece.name} selected. Tap its top-left spot, or use arrows + Enter.`:'This piece needs more room. Try another piece to clear some space.';
   if(!game.hasFit(piece))toast('A little tight! Try another piece first.');
   announce(`${piece.name} selected. ${piece.cells.length} blocks. Arrow keys move, Enter places.`);
@@ -163,35 +168,41 @@ function start(){
 }
 $('play').onclick=start;
 $('restart').onclick=()=>{cancelDrag();if(game.state==='playing'&&game.moves>0&&!confirm('Start a fresh board? Your current game will be cleared.'))return;start();};
-function geometry(){const first=cells[0].getBoundingClientRect(),second=cells[1].getBoundingClientRect();return {left:first.left,top:first.top,step:second.left-first.left,size:first.width};}
+function geometry(){const first=cells[0].getBoundingClientRect(),second=cells[1].getBoundingClientRect(),r=board.getBoundingClientRect();return {left:first.left,top:first.top,step:second.left-first.left,size:first.width,gap:second.left-first.right,board:r};}
 function beginDrag(event,slot){
   if(event.button!==0||drag||!canInteract()||!game.tray[slot])return;
   event.preventDefault();audio.unlock();
-  drag={slot,id:event.pointerId,startX:event.clientX,startY:event.clientY,moved:false,touch:event.pointerType==='touch',button:event.currentTarget};
+  const piece=game.tray[slot],g=geometry();
+  drag={slot,id:event.pointerId,startX:event.clientX,startY:event.clientY,x:event.clientX,y:event.clientY,moved:false,touch:event.pointerType==='touch',button:event.currentTarget,g,...dimensions(piece)};
+  $('drag-ghost').replaceChildren(shapeNode(piece,g.size));
   event.currentTarget.setPointerCapture(event.pointerId);
+}
+function drawDrag(){
+  dragFrame=0;if(!drag||!drag.moved)return;
+  const {g,w,h,x,y,touch}=drag,lift=touch?65:14;
+  const originX=x-(w*g.step-g.gap)/2,originY=y-lift-(h*g.step-g.gap)/2;
+  anchor={x:Math.round((originX-g.left)/g.step),y:Math.round((originY-g.top)/g.step)};
+  const ghost=$('drag-ghost');ghost.style.display='block';ghost.style.transform=`translate3d(${originX}px,${originY}px,0)`;preview();
 }
 function moveDrag(event){
   if(!drag||event.pointerId!==drag.id)return;
-  if(!drag.moved&&Math.hypot(event.clientX-drag.startX,event.clientY-drag.startY)<6)return;
+  drag.x=event.clientX;drag.y=event.clientY;
+  if(!drag.moved&&Math.hypot(drag.x-drag.startX,drag.y-drag.startY)<6)return;
   if(!drag.moved){drag.moved=true;selected=drag.slot;slots.forEach((button,index)=>button.classList.toggle('selected',index===selected));audio.play('pickup');}
-  const piece=game.tray[drag.slot],{w,h}=dimensions(piece),g=geometry(),lift=drag.touch?65:14;
-  const originX=event.clientX-(w*g.step-4)/2,originY=event.clientY-lift-(h*g.step-4)/2;
-  anchor={x:Math.round((originX-g.left)/g.step),y:Math.round((originY-g.top)/g.step)};
-  const ghost=$('drag-ghost');ghost.innerHTML=shapeHTML(piece,g.size);ghost.style.display='block';ghost.style.left=`${originX}px`;ghost.style.top=`${originY}px`;
-  preview();
+  if(!dragFrame)dragFrame=requestAnimationFrame(drawDrag);
 }
 function endDrag(event){
   if(!drag||event.pointerId!==drag.id)return;
-  const {slot,moved}=drag;drag=null;$('drag-ghost').style.display='none';
-  if(moved){
-    // A snapped origin may be valid even while the pointer is just outside the board.
-    const r=board.getBoundingClientRect();
-    if(event.clientX>=r.left&&event.clientX<=r.right&&event.clientY>=r.top&&event.clientY<=r.bottom+70)commit();else{clearPreview();renderTray();}
-  }else select(slot);
+  const {slot,moved,g}=drag;
+  if(moved){drag.x=event.clientX;drag.y=event.clientY;cancelAnimationFrame(dragFrame);drawDrag();}
+  drag=null;dragFrame=0;$('drag-ghost').style.display='none';$('drag-ghost').replaceChildren();
+  if(moved){const r=g.board;if(event.clientX>=r.left&&event.clientX<=r.right&&event.clientY>=r.top&&event.clientY<=r.bottom+70)commit();else{clearPreview();renderTray();}}
+  else select(slot);
 }
 function cancelDrag(){
+  cancelAnimationFrame(dragFrame);dragFrame=0;
   if(drag){const previous=drag;drag=null;try{if(previous.button.hasPointerCapture(previous.id))previous.button.releasePointerCapture(previous.id);}catch{}}
-  $('drag-ghost').style.display='none';clearPreview();
+  $('drag-ghost').style.display='none';$('drag-ghost').replaceChildren();clearPreview();
 }
 document.addEventListener('keydown',event=>{
   if(modalOpen()||!canInteract())return;
@@ -205,6 +216,7 @@ document.addEventListener('keydown',event=>{
   }else if(['Enter','Space'].includes(event.code)){event.preventDefault();if(!event.repeat)commit();}
 });
 window.addEventListener('resize',cancelDrag);
+window.addEventListener('scroll',cancelDrag,true);
 window.addEventListener('blur',cancelDrag);
 document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelDrag();audio.suspend();}});
 function offlineMessage(){
@@ -219,18 +231,32 @@ window.addEventListener('online',offlineMessage);window.addEventListener('offlin
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();deferredInstall=event;$('install-prompt').hidden=false;});
 $('install-prompt').onclick=async()=>{if(!deferredInstall)return;await deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;$('install-prompt').hidden=true;};
 window.addEventListener('appinstalled',()=>{deferredInstall=null;$('install-prompt').hidden=true;toast('Happy is now on your home screen!');});
+function offlineFailure(){offlineReady=false;$('offline-status').textContent='Offline download not finished';$('connection-text').textContent='Offline download incomplete · retry download';$('offline-detail').textContent='The offline download did not finish. Your existing scores are safe. Connect to the internet and choose Retry download.';$('offline-retry').hidden=false;}
+function activeWorker(reg){
+  if(reg.active)return Promise.resolve(reg.active);
+  return new Promise((resolve,reject)=>{
+    const worker=reg.installing||reg.waiting;
+    if(!worker){reject(new Error('No active download'));return;}
+    const timer=setTimeout(()=>finish(new Error('Download timed out')),30000);
+    function finish(error){clearTimeout(timer);worker.removeEventListener('statechange',check);error?reject(error):resolve(reg.active||worker);}
+    function check(){if(worker.state==='activated')finish();else if(worker.state==='redundant')finish(new Error('Download failed'));}
+    worker.addEventListener('statechange',check);check();
+  });
+}
+function cacheStatus(worker){return new Promise((resolve,reject)=>{const channel=new MessageChannel(),timer=setTimeout(()=>{channel.port1.close();reject(new Error('Cache verification timed out'));},3000);channel.port1.onmessage=event=>{clearTimeout(timer);channel.port1.close();resolve(event.data?.ready===true);};worker.postMessage({type:'CACHE_STATUS'},[channel.port2]);});}
 async function setupOffline(){
   if(!('serviceWorker'in navigator)){ $('connection-text').textContent='Offline mode is unavailable in this browser';$('offline-status').textContent='Play online in this browser';return; }
+  $('offline-retry').hidden=true;if(!offlineReady)offlineMessage();
   try{
     registration=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});
     const checkUpdate=()=>{if(registration.waiting)$('update').hidden=false;};
-    registration.addEventListener('updatefound',()=>{const worker=registration.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='installed'&&navigator.serviceWorker.controller)checkUpdate();});});
-    checkUpdate();
-    const ready=await navigator.serviceWorker.ready;
-    // The worker activates only after its atomic core-file cache completes.
-    if(ready.active){offlineReady=true;offlineMessage();}
-  }catch{offlineReady=false;$('offline-status').textContent='Offline download not finished';$('connection-text').textContent='Offline download incomplete · reconnect and reload';}
+    registration.onupdatefound=()=>{const worker=registration.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='installed'&&navigator.serviceWorker.controller)checkUpdate();});};
+    checkUpdate();const worker=await activeWorker(registration);
+    offlineReady=await cacheStatus(worker);if(!offlineReady)throw new Error('Offline cache incomplete');
+    offlineMessage();worker.postMessage({type:'CLEANUP'});
+  }catch{offlineFailure();}
 }
+$('offline-retry').onclick=()=>setupOffline();
 $('update').onclick=()=>{
   if(game.state==='playing'&&game.moves>0&&!confirm('Update the game now? Your current board will restart.'))return;
   updating=true;registration?.waiting?.postMessage({type:'ACTIVATE_UPDATE'});
